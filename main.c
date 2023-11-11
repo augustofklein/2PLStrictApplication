@@ -1,4 +1,8 @@
 #include<stdio.h>
+
+int TRANSACAO1 = 1;
+int TRANSACAO2 = 2;
+
 typedef struct historia
 {
     char operacao[10];
@@ -8,22 +12,22 @@ typedef struct historia
 
 int main(){
 
-    tHistoria historia[] = {{'ls[x]',1},
-                            {'r[x]',1}, 
-                            {'ls[x]',2},
-                            {'r[x]',2},
-                            {'lx[y]',1},
-                            {'w[y]',1},
-                            {'c',1},
-                            {'ux[y]',1},
-                            {'us[x]',1},
-                            {'lx[y]',2},
-                            {'w[y]',2},
-                            {'lx[x]',2},
-                            {'w[x]',2},
-                            {'c',2},
-                            {'ux[x]',2},
-                            {'ux[y]',2}};
+    tHistoria historia[] = {{'ls[x]',TRANSACAO1},
+                            {'r[x]',TRANSACAO1}, 
+                            {'ls[x]',TRANSACAO2},
+                            {'r[x]',TRANSACAO2},
+                            {'lx[y]',TRANSACAO1},
+                            {'w[y]',TRANSACAO1},
+                            {'c',TRANSACAO1},
+                            {'ux[y]',TRANSACAO1},
+                            {'us[x]',TRANSACAO1},
+                            {'lx[y]',TRANSACAO2},
+                            {'w[y]',TRANSACAO2},
+                            {'lx[x]',TRANSACAO2},
+                            {'w[x]',TRANSACAO2},
+                            {'c',TRANSACAO2},
+                            {'ux[x]',TRANSACAO2},
+                            {'ux[y]',TRANSACAO2}};
     
     return 0;
 

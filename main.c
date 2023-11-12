@@ -15,6 +15,7 @@ int DESBLOQUEIO_COMPARTILHADO = 7; // us
 
 char VARIAVEL_X = 'x';
 char VARIAVEL_Y = 'y';
+char VARIAVEL_COMMIT = 'c';
 
 int VALOR_VARIAVEL_X = 10;
 int VALOR_VARIAVEL_Y = 5;
@@ -26,7 +27,7 @@ typedef struct historia
     int transacao;
 } tHistoria;
 
-tHistoria HF[16];
+tHistoria HF[50];
 tHistoria controle_bloqueios[50];
 
 void enviaOperacaoEscalonador(tHistoria historia){
@@ -34,9 +35,14 @@ void enviaOperacaoEscalonador(tHistoria historia){
     int i, possui_bloqueio;
     int posicao_HF, posicao_bloqueio;
 
-    possui_bloqueio = 0;
+    possui_bloqueio = 0;    
 
     for(i=0;i<QTD_REGISTROS;i++){
+
+        if(historia.operacao == COMMIT){
+            possui_bloqueio = 1;
+            break;
+        }
 
         if(historia.transacao == controle_bloqueios[i].transacao &&
            historia.variavel == controle_bloqueios[i].variavel){
@@ -59,7 +65,11 @@ void enviaOperacaoEscalonador(tHistoria historia){
 
     if (possui_bloqueio == 1)
     {
-        //só escreve na HF a operação
+        posicao_HF = retornaProximaPosicaoLivre(HF);
+        HF[posicao_HF].operacao = historia.operacao;
+        HF[posicao_HF].transacao = historia.transacao;
+        HF[posicao_HF].variavel = historia.variavel;
+
     } else {
         posicao_bloqueio = retornaProximaPosicaoLivre(controle_bloqueios);
         controle_bloqueios[posicao_bloqueio].variavel = historia.variavel;
@@ -185,13 +195,13 @@ void inicializaHistoriaFinal(){
 int main(){
 
     // HF =  ls1[x] - r1[x] - ls2[x] - r2[x] - lx1[y] - w1[y] - c1 - ux1[y] - us1[x] - lx2[y] - w2[y] - lx2[x] - w2[x] - c2 - ux2[x] - ux2[y]
-    tHistoria HI[] = {{LEITURA,                   VARIAVEL_X, TRANSACAO1}, 
-                      {LEITURA,                   VARIAVEL_X, TRANSACAO2},
-                      {ESCRITA,                   VARIAVEL_Y, TRANSACAO1},
-                      {COMMIT,                    'c',        TRANSACAO1},
-                      {ESCRITA,                   VARIAVEL_Y, TRANSACAO2},
-                      {ESCRITA,                   VARIAVEL_X, TRANSACAO2},
-                      {COMMIT,                    'c',        TRANSACAO2}};
+    tHistoria HI[] = {{LEITURA,     VARIAVEL_X,         TRANSACAO1}, 
+                      {LEITURA,     VARIAVEL_X,         TRANSACAO2},
+                      {ESCRITA,     VARIAVEL_Y,         TRANSACAO1},
+                      {COMMIT,      VARIAVEL_COMMIT,    TRANSACAO1},
+                      {ESCRITA,     VARIAVEL_Y,         TRANSACAO2},
+                      {ESCRITA,     VARIAVEL_X,         TRANSACAO2},
+                      {COMMIT,      VARIAVEL_COMMIT,    TRANSACAO2}};
 
     inicializaBloqueios();
     inicializaHistoriaFinal();

@@ -30,6 +30,35 @@ typedef struct historia
 tHistoria HF[50];
 tHistoria controle_bloqueios[50];
 
+int retornaProximaPosicaoLivre(tHistoria lista[]);
+
+void adicionaPosicaoHF(int operacao, char variavel, int transacao){
+
+    int posicao_HF = retornaProximaPosicaoLivre(HF);
+    HF[posicao_HF].operacao = operacao;
+    HF[posicao_HF].transacao = transacao;
+    HF[posicao_HF].variavel = variavel;
+
+}
+
+void processaLiberacaoBloqueio(tHistoria historia){
+
+    int i;
+    int posicao_HF;
+
+    for(i=0;i<50;i++){
+        if(controle_bloqueios[i].operacao == BLOQUEIO_EXCLUSIVO &&
+           controle_bloqueios[i].transacao == historia.transacao){
+            adicionaPosicaoHF(DESBLOQUEIO_EXCLUSIVO, controle_bloqueios[i].variavel, controle_bloqueios[i].transacao);
+        }
+
+        if(controle_bloqueios[i].operacao == BLOQUEIO_COMPARTILHADO &&
+           controle_bloqueios[i].transacao == historia.transacao){
+            adicionaPosicaoHF(DESBLOQUEIO_COMPARTILHADO, controle_bloqueios[i].variavel, controle_bloqueios[i].transacao);
+        }
+    }
+}
+
 void enviaOperacaoEscalonador(tHistoria historia){
 
     int i, possui_bloqueio;
@@ -63,13 +92,12 @@ void enviaOperacaoEscalonador(tHistoria historia){
         }
     } 
 
-    if (possui_bloqueio == 1)
-    {
-        posicao_HF = retornaProximaPosicaoLivre(HF);
-        HF[posicao_HF].operacao = historia.operacao;
-        HF[posicao_HF].transacao = historia.transacao;
-        HF[posicao_HF].variavel = historia.variavel;
+    if (possui_bloqueio == 1){
+        adicionaPosicaoHF(historia.operacao, historia.variavel, historia.transacao);
 
+        if(historia.operacao == COMMIT){
+            processaLiberacaoBloqueio(historia);
+        }
     } else {
         posicao_bloqueio = retornaProximaPosicaoLivre(controle_bloqueios);
         controle_bloqueios[posicao_bloqueio].variavel = historia.variavel;
@@ -81,15 +109,11 @@ void enviaOperacaoEscalonador(tHistoria historia){
             controle_bloqueios[posicao_bloqueio].operacao = BLOQUEIO_EXCLUSIVO;
         }
 
-        posicao_HF = retornaProximaPosicaoLivre(HF);
-        HF[posicao_HF].operacao = controle_bloqueios[posicao_bloqueio].operacao;
-        HF[posicao_HF].transacao = controle_bloqueios[posicao_bloqueio].transacao;
-        HF[posicao_HF].variavel = controle_bloqueios[posicao_bloqueio].variavel;
-
-        posicao_HF = retornaProximaPosicaoLivre(HF);
-        HF[posicao_HF].operacao = historia.operacao;
-        HF[posicao_HF].transacao = historia.transacao;
-        HF[posicao_HF].variavel = historia.variavel;
+        adicionaPosicaoHF(controle_bloqueios[posicao_bloqueio].operacao,
+                          controle_bloqueios[posicao_bloqueio].variavel,
+                          controle_bloqueios[posicao_bloqueio].transacao);
+                          
+        adicionaPosicaoHF(historia.operacao, historia.variavel, historia.transacao);
 
     }
     
@@ -194,7 +218,8 @@ void inicializaHistoriaFinal(){
 
 int main(){
 
-    // HF =  ls1[x] - r1[x] - ls2[x] - r2[x] - lx1[y] - w1[y] - c1 - ux1[y] - us1[x] - lx2[y] - w2[y] - lx2[x] - w2[x] - c2 - ux2[x] - ux2[y]
+    // HF =  ls1[x] - r1[x] - ls2[x] - r2[x] - lx1[y] - w1[y] - c1 -
+    // ux1[y] - us1[x] - lx2[y] - w2[y] - lx2[x] - w2[x] - c2 - ux2[x] - ux2[y]
     tHistoria HI[] = {{LEITURA,     VARIAVEL_X,         TRANSACAO1}, 
                       {LEITURA,     VARIAVEL_X,         TRANSACAO2},
                       {ESCRITA,     VARIAVEL_Y,         TRANSACAO1},

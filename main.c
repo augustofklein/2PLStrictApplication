@@ -147,35 +147,6 @@ void adicionaPosicaoBloqueio(char variavel, int transacao, int operacao){
 
 }
 
-int retornaProximaPosicaoLivre(tHistoria lista[]);
-
-void adicionaPosicaoHF(int operacao, char variavel, int transacao){
-
-    int posicao_HF = retornaProximaPosicaoLivre(HF);
-    HF[posicao_HF].operacao = operacao;
-    HF[posicao_HF].transacao = transacao;
-    HF[posicao_HF].variavel = variavel;
-
-}
-
-void processaLiberacaoBloqueio(tHistoria historia){
-
-    int i;
-    int posicao_HF;
-
-    for(i=0;i<50;i++){
-        if(controle_bloqueios[i].operacao == BLOQUEIO_EXCLUSIVO &&
-           controle_bloqueios[i].transacao == historia.transacao){
-            adicionaPosicaoHF(DESBLOQUEIO_EXCLUSIVO, controle_bloqueios[i].variavel, controle_bloqueios[i].transacao);
-        }
-
-        if(controle_bloqueios[i].operacao == BLOQUEIO_COMPARTILHADO &&
-           controle_bloqueios[i].transacao == historia.transacao){
-            adicionaPosicaoHF(DESBLOQUEIO_COMPARTILHADO, controle_bloqueios[i].variavel, controle_bloqueios[i].transacao);
-        }
-    }
-}
-
 void enviaOperacaoEscalonador(tHistoria historia){
 
     int possui_bloqueio;
@@ -254,9 +225,9 @@ void mostraHistoriaFinal(){
 
     while(lista_HF != NULL){
 
-        //if(lista_HF->operacao != NULL){
+        if(lista_HF != inicio_HF){
             printf(" - ");
-        //}
+        }
 
         switch (lista_HF->operacao)
         {

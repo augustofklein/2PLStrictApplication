@@ -19,31 +19,31 @@ char VARIAVEL_COMMIT = 'c';
 int VALOR_VARIAVEL_X = 10;
 int VALOR_VARIAVEL_Y = 5;
 
+int OPERACAO_EXECUTADA = 1;
+int OPERACAO_NAO_EXECUTADA = 0;
+
 struct nodo
 {
     int operacao;
     char variavel;
     int transacao;
+    int executada;
     struct nodo *prox;
 };
-
 typedef struct nodo tHistoria;
 
-struct nodoDelay
+struct deadlock
 {
-    int operacao;
-    char variavel;
     int transacao;
-    int count;
-    struct nodoDelay *prox;
+    int cont;
+    struct deadlock *prox;
 };
-
-typedef struct nodoDelay tDelay;
+typedef struct deadlock TDeadlock;
 
 tHistoria * inicio_HF;
 tHistoria * HI;
 tHistoria * inicio_bloqueios;
-tDelay * inicio_delay;
+TDeadlock * inicio_deadlock;
 
 void adicionaPosicaoHF(int operacao, char variavel, int transacao){
 
@@ -56,6 +56,7 @@ void adicionaPosicaoHF(int operacao, char variavel, int transacao){
     nodo->operacao = operacao;
     nodo->variavel = variavel;
     nodo->transacao = transacao;
+    nodo->executada = OPERACAO_EXECUTADA;
     nodo->prox = NULL;
 
     if(inicio_HF == NULL){
@@ -276,7 +277,6 @@ void mostraHistoriaFinal(){
 
 int processaVerificacaoVariavelBloqueada(tHistoria historia){
 
-    tDelay * listaDelay = inicio_delay;
     tHistoria * listaBloqueado = inicio_bloqueios;
     int verificacao = 0;
 
@@ -290,61 +290,47 @@ int processaVerificacaoVariavelBloqueada(tHistoria historia){
         listaBloqueado = listaBloqueado->prox;
     }
 
-    while(listaDelay != NULL){
-        if(listaDelay->transacao == historia.transacao){
-            verificacao = 1;
-            break;
-        }
-
-        listaDelay = listaDelay->prox;
-    }
-
     return verificacao;
 
 }
 
-int verificaExisteRegistrosHI(tHistoria * lista_HI){
+int verificaExisteRegistrosHINaoExecutados(){
 
-    if(lista_HI == NULL){
-        return 0;
-    }else{
-        return 1;
-    }
+    tHistoria * lista_HI = HI; 
 
-}
-
-int verificaExisteRegistrosDelay(){
-
-    //TODO: modificar para usar a iteracao atual nao o inicio da lista
-    if(inicio_delay == NULL){
-        return 0;
-    }else{
-        return 1;
-    }
-
-}
-
-void processaAdicaoHistoriaDelay(tHistoria historia){
-
-    tDelay *listaDelay = inicio_delay;
-    tDelay *nodo;
-
-    nodo = (struct nodoDelay*)malloc(sizeof(tDelay));
-    nodo->operacao = historia.operacao;
-    nodo->variavel = historia.variavel;
-    nodo->transacao = historia.transacao;
-    nodo->prox = NULL;
-
-    if(inicio_delay == NULL){
-        inicio_delay = nodo;
-    }else{
-        while(listaDelay->prox != NULL){
-            listaDelay = listaDelay->prox;
+    while (lista_HI != NULL)
+    {
+        if(lista_HI->executada == OPERACAO_NAO_EXECUTADA){
+            return 1;
+        }else{
+            lista_HI = lista_HI->prox;
         }
-
-        listaDelay->prox = nodo;
     }
+    return 0;
+}
 
+void adicionaDeadlock(int transacao){
+    TDeadlock * nodo;
+    TDeadlock * lista_deadlock;
+
+    lista_deadlock = inicio_deadlock;
+
+    while(lista_deadlock != NULL){
+        
+        if (inicio_deadlock == NULL){
+            nodo = (struct deadlock*)malloc(sizeof(TDeadlock));
+            nodo->transacao = transacao;
+            nodo->cont = 1;
+            nodo->prox = NULL;
+            inicio_deadlock = nodo;
+        } else {
+            if (lista_deadlock->transacao == transacao){
+                lista_deadlock->cont++;
+            } else {
+                lista_deadlock = lista_deadlock->prox;
+            }
+        }
+    }
 }
 
 void processaEscalonamentoDados(){
@@ -352,19 +338,19 @@ void processaEscalonamentoDados(){
     int i;
     int parada = 0;
     tHistoria *lista_HI = HI;
-    tDelay *lista_delay = inicio_delay;
     tHistoria historia;
 
     while(!parada){
-        if(verificaExisteRegistrosHI(lista_HI)){
+        if(lista_HI != NULL){
             historia.operacao = lista_HI->operacao;
             historia.variavel = lista_HI->variavel;
             historia.transacao = lista_HI->transacao;
 
             if(processaVerificacaoVariavelBloqueada(historia)){
-                processaAdicaoHistoriaDelay(historia);
+                adicionaDeadlock(historia.transacao);
             }else{
                 enviaOperacaoEscalonador(historia);
+                lista_HI->executada = OPERACAO_EXECUTADA;
             }
 
             lista_HI = lista_HI->prox;
@@ -372,21 +358,12 @@ void processaEscalonamentoDados(){
             parada = 1;
         }
 
-        /*
-        if(verificaExisteRegistrosDelay()){
-            historia.operacao = lista_delay->operacao;
-            historia.variavel = lista_delay->variavel;
-            historia.transacao = lista_delay->transacao;
-
-            if(processaVerificacaoVariavelBloqueada(historia)){
-                processaAdicaoHistoriaDelay(historia);
-            }else{
-                enviaOperacaoEscalonador(historia);
-            }
-
-            lista_delay = lista_delay->prox;
+        if(lista_HI == NULL && verificaExisteRegistrosHINaoExecutados())
+        {
+            lista_HI = HI;
+            parada = 0;
         }
-        */
+
     }
 
     mostraHistoriaFinal();
@@ -418,6 +395,7 @@ void processaCriacaoNodoEnvioAdicaoLista(int operacao, char variavel, int transa
     nodo->operacao = operacao;
     nodo->variavel = variavel;
     nodo->transacao = transacao;
+    nodo->executada = OPERACAO_NAO_EXECUTADA;
     nodo->prox = NULL;
 
     processaColocacaoNodoListaHI(nodo);
@@ -457,18 +435,11 @@ void inicializaHistoriaInicial(){
 
 }
 
-void inicializaDelay(){
-
-    inicio_delay = NULL;
-
-}
-
 int main(){
 
     inicializaBloqueios();
     inicializaHistoriaFinal();
     inicializaHistoriaInicial();
-    inicializaDelay();
     processaPopulaDadosTransacoes();
     processaEscalonamentoDados();
     

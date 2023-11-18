@@ -22,6 +22,8 @@ int VALOR_VARIAVEL_Y = 5;
 int OPERACAO_EXECUTADA = 1;
 int OPERACAO_NAO_EXECUTADA = 0;
 
+int CONTAGEM_DEADLOCK = 3;
+
 struct nodo
 {
     int operacao;
@@ -278,16 +280,24 @@ void mostraHistoriaFinal(){
 int processaVerificacaoVariavelBloqueada(tHistoria historia){
 
     tHistoria * listaBloqueado = inicio_bloqueios;
+    TDeadlock * listaDeadlock = inicio_deadlock;
     int verificacao = 0;
 
     while(listaBloqueado != NULL){
         if(listaBloqueado->variavel == historia.variavel &&
            listaBloqueado->transacao != historia.transacao){
-            verificacao = 1;
-            break;
+            return 1;
         }
 
         listaBloqueado = listaBloqueado->prox;
+    }
+
+    while(listaDeadlock != NULL){
+        if(listaDeadlock->transacao == historia.transacao){
+            return 1;
+        }
+
+        listaDeadlock = listaDeadlock->prox;
     }
 
     return verificacao;
@@ -333,6 +343,30 @@ void adicionaDeadlock(int transacao){
     }
 }
 
+void ajustaNaoExecucaoHistoriaInicial(int transacao){
+
+    tHistoria * lista_HI = HI;
+
+    while(lista_HI != NULL){
+        if(lista_HI->transacao == transacao){
+            lista_HI->executada = OPERACAO_NAO_EXECUTADA;
+        }
+
+        lista_HI = lista_HI->prox;
+    }
+
+}
+
+int verificaOcorrenciaDeadlock(int transacao){
+
+    if(transacao >= CONTAGEM_DEADLOCK){
+        return 1;
+    }else{
+        return 0;
+    }
+
+}
+
 void processaEscalonamentoDados(){
 
     int i;
@@ -342,28 +376,33 @@ void processaEscalonamentoDados(){
 
     while(!parada){
         if(lista_HI != NULL){
-            historia.operacao = lista_HI->operacao;
-            historia.variavel = lista_HI->variavel;
-            historia.transacao = lista_HI->transacao;
+            if(lista_HI->executada == OPERACAO_NAO_EXECUTADA){
+                historia.operacao = lista_HI->operacao;
+                historia.variavel = lista_HI->variavel;
+                historia.transacao = lista_HI->transacao;
 
-            if(processaVerificacaoVariavelBloqueada(historia)){
-                adicionaDeadlock(historia.transacao);
-            }else{
-                enviaOperacaoEscalonador(historia);
-                lista_HI->executada = OPERACAO_EXECUTADA;
+                if(processaVerificacaoVariavelBloqueada(historia)){
+                    adicionaDeadlock(historia.transacao);
+                    ajustaNaoExecucaoHistoriaInicial(historia.transacao);
+
+                    if(verificaOcorrenciaDeadlock(historia.transacao)){
+                        printf("Ocorrência de Deadlock da transação %d\n", historia.transacao);
+                    }
+                }else{
+                    printf("ENVIO: %d %d %c\n", historia.transacao, historia.operacao, historia.variavel);
+                    enviaOperacaoEscalonador(historia);
+                    lista_HI->executada = OPERACAO_EXECUTADA;
+                }
             }
 
             lista_HI = lista_HI->prox;
         }else{
-            parada = 1;
+            if(verificaExisteRegistrosHINaoExecutados()){
+                lista_HI = HI;
+            }else{
+                parada = 1;
+            }
         }
-
-        if(lista_HI == NULL && verificaExisteRegistrosHINaoExecutados())
-        {
-            lista_HI = HI;
-            parada = 0;
-        }
-
     }
 
     mostraHistoriaFinal();

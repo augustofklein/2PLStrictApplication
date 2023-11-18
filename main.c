@@ -43,7 +43,7 @@ typedef struct nodoDelay tDelay;
 tHistoria * inicio_HF;
 tHistoria * HI;
 tHistoria * inicio_bloqueios;
-tDelay * delay;
+tDelay * inicio_delay;
 
 void adicionaPosicaoHF(int operacao, char variavel, int transacao){
 
@@ -82,12 +82,6 @@ void processaRetiradaControleBloqueio(char variavel, int transacao, int operacao
             lista_bloqueios->transacao == transacao &&
             lista_bloqueios->variavel == variavel)
         {
-            //Último nodo da lista
-            if (lista_bloqueios->prox == NULL){
-                anterior->prox = NULL;
-                break;
-            }
-            
             //Primeiro nodo da lista
             if (lista_bloqueios == inicio_bloqueios){
                 inicio_bloqueios = inicio_bloqueios->prox;
@@ -95,6 +89,12 @@ void processaRetiradaControleBloqueio(char variavel, int transacao, int operacao
                 break;
             }
 
+            //Último nodo da lista
+            if (lista_bloqueios->prox == NULL){
+                anterior->prox = NULL;
+                break;
+            }
+            
             //Nodo no meio da lista
             anterior->prox = lista_bloqueios->prox;
         } else {
@@ -276,7 +276,7 @@ void mostraHistoriaFinal(){
 
 int processaVerificacaoVariavelBloqueada(tHistoria historia){
 
-    tDelay * listaDelay = delay;
+    tDelay * listaDelay = inicio_delay;
     tHistoria * listaBloqueado = inicio_bloqueios;
     int verificacao = 0;
 
@@ -303,9 +303,9 @@ int processaVerificacaoVariavelBloqueada(tHistoria historia){
 
 }
 
-int verificaExisteRegistrosHI(){
+int verificaExisteRegistrosHI(tHistoria * lista_HI){
 
-    if(HI == NULL){
+    if(lista_HI == NULL){
         return 0;
     }else{
         return 1;
@@ -315,7 +315,8 @@ int verificaExisteRegistrosHI(){
 
 int verificaExisteRegistrosDelay(){
 
-    if(delay == NULL){
+    //TODO: modificar para usar a iteracao atual nao o inicio da lista
+    if(inicio_delay == NULL){
         return 0;
     }else{
         return 1;
@@ -325,7 +326,7 @@ int verificaExisteRegistrosDelay(){
 
 void processaAdicaoHistoriaDelay(tHistoria historia){
 
-    tDelay *listaDelay = delay;
+    tDelay *listaDelay = inicio_delay;
     tDelay *nodo;
 
     nodo = (struct nodoDelay*)malloc(sizeof(tDelay));
@@ -334,8 +335,8 @@ void processaAdicaoHistoriaDelay(tHistoria historia){
     nodo->transacao = historia.transacao;
     nodo->prox = NULL;
 
-    if(listaDelay == NULL){
-        listaDelay = nodo;
+    if(inicio_delay == NULL){
+        inicio_delay = nodo;
     }else{
         while(listaDelay->prox != NULL){
             listaDelay = listaDelay->prox;
@@ -351,11 +352,11 @@ void processaEscalonamentoDados(){
     int i;
     int parada = 0;
     tHistoria *lista_HI = HI;
-    tDelay *lista_delay = delay;
+    tDelay *lista_delay = inicio_delay;
     tHistoria historia;
 
     while(!parada){
-        if(verificaExisteRegistrosHI()){
+        if(verificaExisteRegistrosHI(lista_HI)){
             historia.operacao = lista_HI->operacao;
             historia.variavel = lista_HI->variavel;
             historia.transacao = lista_HI->transacao;
@@ -458,7 +459,7 @@ void inicializaHistoriaInicial(){
 
 void inicializaDelay(){
 
-    delay = NULL;
+    inicio_delay = NULL;
 
 }
 

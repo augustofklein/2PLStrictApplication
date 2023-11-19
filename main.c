@@ -409,6 +409,16 @@ int verificaOcorrenciaDeadlock(int transacao){
     return 0;
 }
 
+int verificaOperacaoCommit(int operacao){
+
+    if(operacao == COMMIT){
+        return 1;
+    }else{
+        return 0;
+    }
+
+}
+
 void processaEscalonamentoDados(){
 
     int i;
@@ -431,12 +441,16 @@ void processaEscalonamentoDados(){
                     ajustaNaoExecucaoHistoriaInicial(historia.transacao);
 
                     if(verificaOcorrenciaDeadlock(historia.transacao)){
-                        printf("Ocorrência de Deadlock da transação %d\n", historia.transacao);
+                        printf("Ocorrência de Overhead da transação %d\n", historia.transacao);
                     }
                 }else{
                     printf("ENVIO: %d %d %c\n", historia.transacao, historia.operacao, historia.variavel);
                     enviaOperacaoEscalonador(historia);
                     lista_HI->executada = OPERACAO_EXECUTADA;
+
+                    if(verificaOperacaoCommit(historia.operacao)){
+                        lista_HI = HI;
+                    }
                 }
             }
 

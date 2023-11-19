@@ -145,9 +145,6 @@ void processaRetiradaControleBloqueio(char variavel, int transacao, int operacao
 
 void processaLiberacaoBloqueio(tHistoria historia){
 
-    int i;
-    int posicao_HF;
-
     tHistoria *lista_bloqueios;
     
     lista_bloqueios = inicio_bloqueios;
@@ -175,7 +172,6 @@ void processaLiberacaoBloqueio(tHistoria historia){
 void adicionaPosicaoBloqueio(char variavel, int transacao, int operacao){
 
     tHistoria *lista_bloqueios;
-    tHistoria *anterior;
     tHistoria * nodo;
 
     nodo = (struct nodo*)malloc(sizeof(tHistoria));
@@ -266,7 +262,7 @@ void enviaOperacaoEscalonador(tHistoria historia){
     
 }
 
-void mostraHistoriaFinal(){
+void mostraHistoriaFinal(void){
 
     tHistoria *lista_HF;
 
@@ -339,7 +335,7 @@ int processaVerificacaoVariavelBloqueada(tHistoria historia){
 
 }
 
-int verificaExisteRegistrosHINaoExecutados(){
+int verificaExisteRegistrosHINaoExecutados(void){
 
     tHistoria * lista_HI = HI; 
 
@@ -380,13 +376,13 @@ void adicionaDeadlock(int transacao, int transacao_trancou_operacao){
     }
 }
 
-void ajustaNaoExecucaoHistoriaInicial(int transacao){
+void ajustaNaoExecucaoHistoriaInicial(int transacao, int tipoExecucao){
 
     tHistoria * lista_HI = HI;
 
     while(lista_HI != NULL){
         if(lista_HI->transacao == transacao){
-            lista_HI->executada = OPERACAO_NAO_EXECUTADA;
+            lista_HI->executada = tipoExecucao;
         }
 
         lista_HI = lista_HI->prox;
@@ -394,7 +390,7 @@ void ajustaNaoExecucaoHistoriaInicial(int transacao){
 
 }
 
-int verificaOcorrenciaDeadlock(int transacao){
+int verificaOcorrenciaOverhead(int transacao){
 
     TDeadlock * lista_deadlock = inicio_deadlock;
 
@@ -419,9 +415,8 @@ int verificaOperacaoCommit(int operacao){
 
 }
 
-void processaEscalonamentoDados(){
+void processaEscalonamentoDados(void){
 
-    int i;
     int parada = 0;
     tHistoria *lista_HI = HI;
     tHistoria historia;
@@ -438,10 +433,13 @@ void processaEscalonamentoDados(){
 
                 if(transacao_trancou_operacao != 0){
                     adicionaDeadlock(historia.transacao, transacao_trancou_operacao);
-                    ajustaNaoExecucaoHistoriaInicial(historia.transacao);
+                    ajustaNaoExecucaoHistoriaInicial(historia.transacao, OPERACAO_NAO_EXECUTADA);
 
-                    if(verificaOcorrenciaDeadlock(historia.transacao)){
+                    if(verificaOcorrenciaOverhead(historia.transacao)){
                         printf("Ocorrência de Overhead da transação %d\n", historia.transacao);
+                        // SETAMOS A EXECUCAO DA TRANSACAO COMO EXECUTADA PARA EVITAR A SUA EXECUCAO
+                        // POIS ENTROU EM OVERHEAD
+                        ajustaNaoExecucaoHistoriaInicial(historia.transacao, OPERACAO_EXECUTADA);
                     }
                 }else{
                     printf("ENVIO: %d %d %c\n", historia.transacao, historia.operacao, historia.variavel);
@@ -500,8 +498,10 @@ void processaCriacaoNodoEnvioAdicaoLista(int operacao, char variavel, int transa
 
 }
 
-void processaPopulaDadosTransacoes(){
+void processaPopulaDadosTransacoes(void){
 
+/*
+    // EXECUCAO DO CAMINHO FELIZ
     // HF =  ls1[x] - r1[x] - ls2[x] - r2[x] - lx1[y] - w1[y] - c1 -
     // ux1[y] - us1[x] - lx2[y] - w2[y] - lx2[x] - w2[x] - c2 - us2[x] - ux2[x] - ux2[y]
 
@@ -512,28 +512,43 @@ void processaPopulaDadosTransacoes(){
     processaCriacaoNodoEnvioAdicaoLista(ESCRITA, VARIAVEL_Y,      TRANSACAO2);
     processaCriacaoNodoEnvioAdicaoLista(ESCRITA, VARIAVEL_X,      TRANSACAO2);
     processaCriacaoNodoEnvioAdicaoLista(COMMIT,  VARIAVEL_COMMIT, TRANSACAO2);
+*/
+
+    // EXECUCAO DE OVERLOCK
+    // HF =  ls1[x] - r1[x] - ls2[x] - r2[x] - lx1[y] - w1[y] - c1 -
+    // ux1[y] - us1[x] - lx2[y] - w2[y] - lx2[x] - w2[x] - c2 - us2[x] - ux2[x] - ux2[y]
+
+    processaCriacaoNodoEnvioAdicaoLista(LEITURA, VARIAVEL_X,      TRANSACAO1);
+    processaCriacaoNodoEnvioAdicaoLista(LEITURA, VARIAVEL_X,      TRANSACAO2);
+    processaCriacaoNodoEnvioAdicaoLista(LEITURA, VARIAVEL_Y,      TRANSACAO2);
+    processaCriacaoNodoEnvioAdicaoLista(LEITURA, VARIAVEL_X,      TRANSACAO2);
+    processaCriacaoNodoEnvioAdicaoLista(ESCRITA, VARIAVEL_Y,      TRANSACAO1);
+    processaCriacaoNodoEnvioAdicaoLista(COMMIT,  VARIAVEL_COMMIT, TRANSACAO1);
+    processaCriacaoNodoEnvioAdicaoLista(ESCRITA, VARIAVEL_Y,      TRANSACAO2);
+    processaCriacaoNodoEnvioAdicaoLista(ESCRITA, VARIAVEL_X,      TRANSACAO2);
+    processaCriacaoNodoEnvioAdicaoLista(COMMIT,  VARIAVEL_COMMIT, TRANSACAO2);
 
 }
 
-void inicializaBloqueios(){
+void inicializaBloqueios(void){
     
     inicio_bloqueios = NULL;
     
 }
 
-void inicializaHistoriaFinal(){
+void inicializaHistoriaFinal(void){
 
     inicio_HF = NULL;
 
 }
 
-void inicializaHistoriaInicial(){
+void inicializaHistoriaInicial(void){
 
     HI = NULL;
 
 }
 
-int main(){
+int main(void){
 
     inicializaBloqueios();
     inicializaHistoriaFinal();

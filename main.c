@@ -428,7 +428,7 @@ void processaEscalonamentoDados(void){
                     ajustaNaoExecucaoHistoriaInicial(historia.transacao, OPERACAO_NAO_EXECUTADA);
 
                     if(verificaOcorrenciaOverhead(historia.transacao)){
-                        printf("Ocorrência de Overhead da transação %d\n", historia.transacao);
+                        printf("Ocorrencia de Overhead da transacao %d\n", historia.transacao);
                         ajustaNaoExecucaoHistoriaInicial(historia.transacao, OPERACAO_EXECUTADA);
                     }
                 }else{

@@ -196,14 +196,9 @@ void adicionaPosicaoBloqueio(char variavel, int transacao, int operacao){
 
 void enviaOperacaoEscalonador(tHistoria historia){
 
-    int possui_bloqueio;
-
-    tHistoria *lista_bloqueios;
+    tHistoria *lista_bloqueios = inicio_bloqueios;
     tHistoria registro_bloqueio;
-
-    lista_bloqueios = inicio_bloqueios;
-
-    possui_bloqueio = 0;    
+    int possui_bloqueio = 0;
 
     while(lista_bloqueios != NULL){
 
@@ -264,9 +259,7 @@ void enviaOperacaoEscalonador(tHistoria historia){
 
 void mostraHistoriaFinal(void){
 
-    tHistoria *lista_HF;
-
-    lista_HF = inicio_HF;
+    tHistoria *lista_HF = inicio_HF;
 
     printf("HF = ");
 
@@ -351,10 +344,9 @@ int verificaExisteRegistrosHINaoExecutados(void){
 }
 
 void adicionaDeadlock(int transacao, int transacao_trancou_operacao){
-    TDeadlock * nodo;
-    TDeadlock * lista_deadlock;
 
-    lista_deadlock = inicio_deadlock;
+    TDeadlock * nodo;
+    TDeadlock * lista_deadlock = inicio_deadlock;
     
     if(lista_deadlock == NULL){
         nodo = (struct deadlock*)malloc(sizeof(TDeadlock));
@@ -418,9 +410,9 @@ int verificaOperacaoCommit(int operacao){
 void processaEscalonamentoDados(void){
 
     int parada = 0;
+    int transacao_trancou_operacao;
     tHistoria *lista_HI = inicio_HI;
     tHistoria historia;
-    int transacao_trancou_operacao;
 
     while(!parada){
         if(lista_HI != NULL){
@@ -437,12 +429,9 @@ void processaEscalonamentoDados(void){
 
                     if(verificaOcorrenciaOverhead(historia.transacao)){
                         printf("Ocorrência de Overhead da transação %d\n", historia.transacao);
-                        // SETAMOS A EXECUCAO DA TRANSACAO COMO EXECUTADA PARA EVITAR A SUA EXECUCAO
-                        // POIS ENTROU EM OVERHEAD
                         ajustaNaoExecucaoHistoriaInicial(historia.transacao, OPERACAO_EXECUTADA);
                     }
                 }else{
-                    printf("ENVIO: %d %d %c\n", historia.transacao, historia.operacao, historia.variavel);
                     enviaOperacaoEscalonador(historia);
                     lista_HI->executada = OPERACAO_EXECUTADA;
 
@@ -468,9 +457,7 @@ void processaEscalonamentoDados(void){
 
 void processaColocacaoNodoListaHI(tHistoria *nodo){
 
-    tHistoria * lista_HI;
-
-    lista_HI = inicio_HI;
+    tHistoria * lista_HI = inicio_HI;
 
     if(inicio_HI == NULL){
         inicio_HI = nodo;
@@ -500,7 +487,6 @@ void processaCriacaoNodoEnvioAdicaoLista(int operacao, char variavel, int transa
 
 void processaPopulaDadosTransacoes(void){
 
-/*
     // EXECUCAO DO CAMINHO FELIZ
     // HF =  ls1[x] - r1[x] - ls2[x] - r2[x] - lx1[y] - w1[y] - c1 -
     // ux1[y] - us1[x] - lx2[y] - w2[y] - lx2[x] - w2[x] - c2 - us2[x] - ux2[x] - ux2[y]
@@ -512,9 +498,9 @@ void processaPopulaDadosTransacoes(void){
     processaCriacaoNodoEnvioAdicaoLista(ESCRITA, VARIAVEL_Y,      TRANSACAO2);
     processaCriacaoNodoEnvioAdicaoLista(ESCRITA, VARIAVEL_X,      TRANSACAO2);
     processaCriacaoNodoEnvioAdicaoLista(COMMIT,  VARIAVEL_COMMIT, TRANSACAO2);
-*/
 
-    // EXECUCAO DE OVERLOCK
+/*
+    // EXECUCAO DE OVERHEAD
     // HF =  ls1[x] - r1[x] - ls2[x] - r2[x] - lx1[y] - w1[y] - c1 -
     // ux1[y] - us1[x] - lx2[y] - w2[y] - lx2[x] - w2[x] - c2 - us2[x] - ux2[x] - ux2[y]
 
@@ -527,6 +513,7 @@ void processaPopulaDadosTransacoes(void){
     processaCriacaoNodoEnvioAdicaoLista(ESCRITA, VARIAVEL_Y,      TRANSACAO2);
     processaCriacaoNodoEnvioAdicaoLista(ESCRITA, VARIAVEL_X,      TRANSACAO2);
     processaCriacaoNodoEnvioAdicaoLista(COMMIT,  VARIAVEL_COMMIT, TRANSACAO2);
+*/
 
 }
 

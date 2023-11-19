@@ -44,7 +44,7 @@ struct deadlock
 typedef struct deadlock TDeadlock;
 
 tHistoria * inicio_HF;
-tHistoria * HI;
+tHistoria * inicio_HI;
 tHistoria * inicio_bloqueios;
 TDeadlock * inicio_deadlock;
 
@@ -337,7 +337,7 @@ int processaVerificacaoVariavelBloqueada(tHistoria historia){
 
 int verificaExisteRegistrosHINaoExecutados(void){
 
-    tHistoria * lista_HI = HI; 
+    tHistoria * lista_HI = inicio_HI; 
 
     while (lista_HI != NULL)
     {
@@ -378,7 +378,7 @@ void adicionaDeadlock(int transacao, int transacao_trancou_operacao){
 
 void ajustaNaoExecucaoHistoriaInicial(int transacao, int tipoExecucao){
 
-    tHistoria * lista_HI = HI;
+    tHistoria * lista_HI = inicio_HI;
 
     while(lista_HI != NULL){
         if(lista_HI->transacao == transacao){
@@ -418,7 +418,7 @@ int verificaOperacaoCommit(int operacao){
 void processaEscalonamentoDados(void){
 
     int parada = 0;
-    tHistoria *lista_HI = HI;
+    tHistoria *lista_HI = inicio_HI;
     tHistoria historia;
     int transacao_trancou_operacao;
 
@@ -447,7 +447,7 @@ void processaEscalonamentoDados(void){
                     lista_HI->executada = OPERACAO_EXECUTADA;
 
                     if(verificaOperacaoCommit(historia.operacao)){
-                        lista_HI = HI;
+                        lista_HI = inicio_HI;
                     }
                 }
             }
@@ -455,7 +455,7 @@ void processaEscalonamentoDados(void){
             lista_HI = lista_HI->prox;
         }else{
             if(verificaExisteRegistrosHINaoExecutados()){
-                lista_HI = HI;
+                lista_HI = inicio_HI;
             }else{
                 parada = 1;
             }
@@ -470,10 +470,10 @@ void processaColocacaoNodoListaHI(tHistoria *nodo){
 
     tHistoria * lista_HI;
 
-    lista_HI = HI;
+    lista_HI = inicio_HI;
 
-    if(HI == NULL){
-        HI = nodo;
+    if(inicio_HI == NULL){
+        inicio_HI = nodo;
     }else{
         while(lista_HI->prox != NULL){
             lista_HI = lista_HI->prox;
@@ -544,7 +544,7 @@ void inicializaHistoriaFinal(void){
 
 void inicializaHistoriaInicial(void){
 
-    HI = NULL;
+    inicio_HI = NULL;
 
 }
 

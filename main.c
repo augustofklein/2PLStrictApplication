@@ -37,6 +37,7 @@ typedef struct nodo tHistoria;
 struct deadlock
 {
     int transacao;
+    int transacao_trancou;
     int cont;
     struct deadlock *prox;
 };
@@ -69,6 +70,39 @@ void adicionaPosicaoHF(int operacao, char variavel, int transacao){
         }
 
         lista_HF->prox = nodo; 
+    }
+}
+
+void processaRetiradaControleDelay(int transacao){
+
+    TDeadlock * listaDeadlock = inicio_deadlock;
+    TDeadlock * anterior = inicio_deadlock;
+
+    while(listaDeadlock != NULL){
+
+        //Se a transação responsavel pelo lock for a que esta realizando commit devemos liberar
+        if(listaDeadlock->transacao_trancou == transacao){
+
+            //Primeiro nodo da lista
+            if (listaDeadlock == inicio_deadlock){
+                inicio_deadlock = inicio_deadlock->prox;
+                listaDeadlock = inicio_deadlock;
+                break;
+            }
+
+            //Último nodo da lista
+            if (listaDeadlock->prox == NULL){
+                anterior->prox = NULL;
+                break;
+            }
+            
+            //Nodo no meio da lista
+            anterior->prox = listaDeadlock->prox;
+
+        } else {
+            anterior = listaDeadlock;
+            listaDeadlock = listaDeadlock->prox;
+        }
     }
 }
 
@@ -123,12 +157,14 @@ void processaLiberacaoBloqueio(tHistoria historia){
            lista_bloqueios->transacao == historia.transacao){
             adicionaPosicaoHF(DESBLOQUEIO_EXCLUSIVO, lista_bloqueios->variavel, lista_bloqueios->transacao);
             processaRetiradaControleBloqueio(lista_bloqueios->variavel, lista_bloqueios->transacao, lista_bloqueios->operacao);
+            processaRetiradaControleDelay(lista_bloqueios->transacao);
         }
 
         if(lista_bloqueios->operacao == BLOQUEIO_COMPARTILHADO &&
            lista_bloqueios->transacao == historia.transacao){
             adicionaPosicaoHF(DESBLOQUEIO_COMPARTILHADO, lista_bloqueios->variavel, lista_bloqueios->transacao);
             processaRetiradaControleBloqueio(lista_bloqueios->variavel, lista_bloqueios->transacao, lista_bloqueios->operacao);
+            processaRetiradaControleDelay(lista_bloqueios->transacao);
         }
 
         lista_bloqueios = lista_bloqueios->prox;
@@ -281,12 +317,11 @@ int processaVerificacaoVariavelBloqueada(tHistoria historia){
 
     tHistoria * listaBloqueado = inicio_bloqueios;
     TDeadlock * listaDeadlock = inicio_deadlock;
-    int verificacao = 0;
 
     while(listaBloqueado != NULL){
         if(listaBloqueado->variavel == historia.variavel &&
            listaBloqueado->transacao != historia.transacao){
-            return 1;
+            return listaBloqueado->transacao;
         }
 
         listaBloqueado = listaBloqueado->prox;
@@ -294,13 +329,13 @@ int processaVerificacaoVariavelBloqueada(tHistoria historia){
 
     while(listaDeadlock != NULL){
         if(listaDeadlock->transacao == historia.transacao){
-            return 1;
+            return listaDeadlock->transacao_trancou;
         }
 
         listaDeadlock = listaDeadlock->prox;
     }
 
-    return verificacao;
+    return 0;
 
 }
 
@@ -319,23 +354,25 @@ int verificaExisteRegistrosHINaoExecutados(){
     return 0;
 }
 
-void adicionaDeadlock(int transacao){
+void adicionaDeadlock(int transacao, int transacao_trancou_operacao){
     TDeadlock * nodo;
     TDeadlock * lista_deadlock;
 
     lista_deadlock = inicio_deadlock;
+    
+    if(lista_deadlock == NULL){
+        nodo = (struct deadlock*)malloc(sizeof(TDeadlock));
+        nodo->transacao = transacao;
+        nodo->transacao_trancou = transacao_trancou_operacao;
+        nodo->cont = 1;
+        nodo->prox = NULL;
+        inicio_deadlock = nodo;
+    } else {
+        while(lista_deadlock != NULL){
 
-    while(lista_deadlock != NULL){
-        
-        if (inicio_deadlock == NULL){
-            nodo = (struct deadlock*)malloc(sizeof(TDeadlock));
-            nodo->transacao = transacao;
-            nodo->cont = 1;
-            nodo->prox = NULL;
-            inicio_deadlock = nodo;
-        } else {
             if (lista_deadlock->transacao == transacao){
                 lista_deadlock->cont++;
+                break;
             } else {
                 lista_deadlock = lista_deadlock->prox;
             }
@@ -359,12 +396,17 @@ void ajustaNaoExecucaoHistoriaInicial(int transacao){
 
 int verificaOcorrenciaDeadlock(int transacao){
 
-    if(transacao >= CONTAGEM_DEADLOCK){
-        return 1;
-    }else{
-        return 0;
-    }
+    TDeadlock * lista_deadlock = inicio_deadlock;
 
+    while(lista_deadlock != NULL){
+        if(lista_deadlock->transacao == transacao &&
+           lista_deadlock->cont >= CONTAGEM_DEADLOCK){
+            return 1;
+        } else {
+            lista_deadlock = lista_deadlock->prox;
+        }
+    }
+    return 0;
 }
 
 void processaEscalonamentoDados(){
@@ -373,6 +415,7 @@ void processaEscalonamentoDados(){
     int parada = 0;
     tHistoria *lista_HI = HI;
     tHistoria historia;
+    int transacao_trancou_operacao;
 
     while(!parada){
         if(lista_HI != NULL){
@@ -381,8 +424,10 @@ void processaEscalonamentoDados(){
                 historia.variavel = lista_HI->variavel;
                 historia.transacao = lista_HI->transacao;
 
-                if(processaVerificacaoVariavelBloqueada(historia)){
-                    adicionaDeadlock(historia.transacao);
+                transacao_trancou_operacao = processaVerificacaoVariavelBloqueada(historia);
+
+                if(transacao_trancou_operacao != 0){
+                    adicionaDeadlock(historia.transacao, transacao_trancou_operacao);
                     ajustaNaoExecucaoHistoriaInicial(historia.transacao);
 
                     if(verificaOcorrenciaDeadlock(historia.transacao)){
